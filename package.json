@@ -1,0 +1,14 @@
+{
+  "name": "telegram-mcp-vercel",
+  "version": "3.0.0",
+  "description": "Production-ready Telegram Bot API MCP server for AI clients, built for Vercel (zero dependencies).",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test",
+    "dev": "npx vercel dev",
+    "deploy": "npx vercel --prod"
+  }
+}

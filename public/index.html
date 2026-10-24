@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Telegram MCP · Admin</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✈️</text></svg>">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#14171a;--muted:#667085;--line:#e4e7ec;--accent:#229ed9;--accent-text:#fff;--ok:#12805c;--bad:#c2410c;--code:#f1f3f5}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1116;--card:#171b22;--text:#e8eaed;--muted:#98a2b3;--line:#2a313c;--accent:#3aaee6;--accent-text:#04202e;--ok:#4ade80;--bad:#fb923c;--code:#0e1116}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:920px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 12px}
+.muted{color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+input,select,button{font:inherit;color:inherit}
+input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+button{padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:transparent;font-weight:600}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>input{flex:1;min-width:160px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:13px;margin:8px 0}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tabs button[aria-selected=true]{background:var(--accent);color:var(--accent-text);border-color:transparent}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.tag.d{color:var(--bad);border-color:var(--bad)}
+.hidden{display:none}
+#msg{min-height:22px;margin:8px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div><h1>✈️ Telegram MCP</h1><div class="muted" id="sub">Admin panel</div></div>
+  <button id="logout" class="hidden">Chiqish</button>
+</header>
+
+<section id="gate" class="card">
+  <h2>Kirish</h2>
+  <p class="muted">Vercel'dagi <code>MCP_AUTH_TOKEN</code> qiymatini kiriting. Token faqat shu brauzer sessiyasida saqlanadi.</p>
+  <div class="row"><input id="token" type="password" placeholder="MCP_AUTH_TOKEN" autocomplete="off"><button id="login" class="primary">Kirish</button></div>
+</section>
+
+<section id="app" class="hidden">
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="status" aria-selected="true">Holat</button>
+    <button role="tab" data-tab="connect" aria-selected="false">Ulash</button>
+    <button role="tab" data-tab="tools" aria-selected="false">Toollar</button>
+    <button role="tab" data-tab="webhook" aria-selected="false">Webhook</button>
+    <button role="tab" data-tab="test" aria-selected="false">Sinov</button>
+  </div>
+  <div id="msg" role="status"></div>
+
+  <div data-pane="status" class="card"><h2>Server holati</h2><div class="grid" id="stats"></div></div>
+
+  <div data-pane="connect" class="card hidden">
+    <h2>AI klientlarni ulash</h2>
+    <p class="muted">MCP URL: <code id="mcpurl"></code> &nbsp;(<code>YOUR_TOKEN</code> o'rniga MCP_AUTH_TOKEN qo'ying)</p>
+    <b>Claude Code</b><pre id="c1"></pre>
+    <b>Cursor / Windsurf / VS Code (mcp.json)</b><pre id="c2"></pre>
+    <b>Claude Desktop (mcp-remote orqali)</b><pre id="c3"></pre>
+    <b>Claude.ai / sarlavha qo'llamaydigan klientlar (Custom connector URL)</b><pre id="c4"></pre>
+  </div>
+
+  <div data-pane="tools" class="card hidden">
+    <h2>Toollar <span class="muted" id="toolcount"></span></h2>
+    <input id="filter" placeholder="Qidirish…" style="margin-bottom:10px">
+    <table><tbody id="toolrows"></tbody></table>
+  </div>
+
+  <div data-pane="webhook" class="card hidden">
+    <h2>Webhook</h2>
+    <p class="muted">Kiruvchi xabarlar <code id="whurl"></code> ga keladi. <code>WEBHOOK_SECRET</code> o'rnatilgan bo'lsa Telegram shu sir bilan imzolaydi.</p>
+    <div class="row">
+      <button id="setwh" class="primary">Webhook o'rnatish</button>
+      <button id="delwh" class="danger">Webhook o'chirish</button>
+      <label class="row muted"><input type="checkbox" id="drop" style="width:auto"> kutilayotgan update'larni tashlash</label>
+    </div>
+    <pre id="whinfo">…</pre>
+  </div>
+
+  <div data-pane="test" class="card hidden">
+    <h2>Test xabar yuborish</h2>
+    <div class="row"><input id="chat" placeholder="chat_id yoki @kanal"><input id="text" placeholder="Matn" value="✅ Telegram MCP ishlayapti"><button id="send" class="primary">Yuborish</button></div>
+  </div>
+</section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const origin = location.origin;
+let token = sessionStorage.getItem('mcp_token') || '';
+let toolList = [];
+
+async function api(action, extra = {}) {
+  const r = await fetch('/api/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ action, ...extra }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401 || r.status === 503) throw Object.assign(new Error(data.error || 'Unauthorized'), { auth: true });
+  if (!r.ok) throw new Error(data.error || 'Xatolik ' + r.status);
+  return data;
+}
+function say(text, bad) { const m = $('msg'); m.textContent = text || ''; m.className = bad ? 'bad' : 'ok'; }
+function stat(label, value, good) {
+  const d = document.createElement('div'); d.className = 'stat';
+  const b = document.createElement('b'); b.textContent = label;
+  const v = document.createElement('span'); v.textContent = value;
+  if (good !== undefined) v.className = good ? 'ok' : 'bad';
+  d.append(b, v); return d;
+}
+
+async function loadStatus() {
+  const h = await (await fetch('/api/health', { headers: { Authorization: 'Bearer ' + token } })).json();
+  const d = h.details || {};
+  let bot = {}, wh = {};
+  try { ({ bot, webhook: wh } = await api('status')); } catch (e) { if (e.auth) throw e; bot = { error: e.message }; }
+  const box = $('stats'); box.replaceChildren(
+    stat('Versiya', h.version),
+    stat('Muhit', d.environment || '—'),
+    stat('Bot', bot.username ? '@' + bot.username : (bot.error || '—'), Boolean(bot.username)),
+    stat('BOT_TOKEN', d.botConfigured ? 'sozlangan' : 'yo\'q', d.botConfigured),
+    stat('Auth', d.authConfigured ? 'yoqilgan' : 'o\'chiq!', d.authConfigured),
+    stat('Webhook sir', d.webhookSecretConfigured ? 'sozlangan' : 'yo\'q', d.webhookSecretConfigured),
+    stat('Inbox (Redis)', d.inboxConfigured ? 'ulangan' : 'ulanmagan'),
+    stat('Faqat o\'qish', d.readOnly ? 'ha' : 'yo\'q'),
+    stat('Ruxsat etilgan chatlar', d.allowedChats ? String(d.allowedChats) : 'cheklov yo\'q'),
+    stat('Toollar', String(d.toolsEnabled ?? '—')),
+  );
+  $('whinfo').textContent = JSON.stringify(wh, null, 2);
+}
+
+function renderConnect() {
+  const url = origin + '/api/mcp';
+  $('mcpurl').textContent = url;
+  $('whurl').textContent = origin + '/api/webhook';
+  $('c1').textContent = `claude mcp add --transport http telegram ${url} \\\n  --header "Authorization: Bearer YOUR_TOKEN"`;
+  $('c2').textContent = JSON.stringify({ mcpServers: { telegram: { url, headers: { Authorization: 'Bearer YOUR_TOKEN' } } } }, null, 2);
+  $('c3').textContent = JSON.stringify({ mcpServers: { telegram: { command: 'npx', args: ['-y', 'mcp-remote', url, '--header', 'Authorization: Bearer YOUR_TOKEN'] } } }, null, 2);
+  $('c4').textContent = `${url}?key=YOUR_TOKEN\n\n⚠ Bu URL sirni o'z ichiga oladi — hech kimga bermang.`;
+}
+
+function renderTools() {
+  const q = $('filter').value.toLowerCase();
+  const rows = toolList.filter((t) => t.name.includes(q) || t.description.toLowerCase().includes(q));
+  $('toolcount').textContent = `(${rows.length}/${toolList.length})`;
+  $('toolrows').replaceChildren(...rows.map((t) => {
+    const tr = document.createElement('tr');
+    const a = document.createElement('td'); const c = document.createElement('code'); c.textContent = t.name; a.append(c);
+    const b = document.createElement('td'); b.textContent = t.description;
+    const g = document.createElement('td');
+    const tag = document.createElement('span'); tag.className = 'tag' + (t.destructive ? ' d' : '');
+    tag.textContent = t.readOnly ? 'read' : t.destructive ? 'destructive' : 'write'; g.append(tag);
+    tr.append(a, b, g); return tr;
+  }));
+}
+
+async function enter() {
+  $('gate').classList.add('hidden'); $('app').classList.remove('hidden'); $('logout').classList.remove('hidden');
+  renderConnect();
+  try {
+    await loadStatus();
+    toolList = (await api('tools')).tools; renderTools();
+  } catch (e) { if (e.auth) return logout(e.message); say(e.message, true); }
+}
+function logout(message) {
+  sessionStorage.removeItem('mcp_token'); token = '';
+  $('app').classList.add('hidden'); $('logout').classList.add('hidden'); $('gate').classList.remove('hidden');
+  say(typeof message === 'string' ? message : '', true);
+}
+
+$('login').onclick = () => { token = $('token').value.trim(); if (!token) return; sessionStorage.setItem('mcp_token', token); $('token').value = ''; enter(); };
+$('token').addEventListener('keydown', (e) => e.key === 'Enter' && $('login').click());
+$('logout').onclick = () => logout();
+$('filter').oninput = renderTools;
+document.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('[data-tab]').forEach((x) => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('[data-pane]').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== b.dataset.tab));
+});
+const act = (btn, fn, ok) => btn.onclick = async () => {
+  btn.disabled = true; say('…');
+  try { await fn(); say(ok); await loadStatus().catch(() => {}); } catch (e) { say(e.message, true); } finally { btn.disabled = false; }
+};
+act($('setwh'), () => api('set_webhook', { drop_pending_updates: $('drop').checked }), 'Webhook o\'rnatildi');
+act($('delwh'), () => api('delete_webhook', { drop_pending_updates: $('drop').checked }), 'Webhook o\'chirildi');
+act($('send'), () => api('send_test', { chat_id: $('chat').value.trim(), text: $('text').value }), 'Xabar yuborildi');
+
+if (token) enter();
+</script>
+</body>
+</html>
