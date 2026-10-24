@@ -115,3 +115,4 @@ npm test
 - Vercel so'rov hajmi ~4.5 MB: katta fayllarni `file_base64` bilan emas, ommaviy URL yoki `file_id` bilan yuboring.
 - Server stateless: SSE oqimi yo'q (`GET /api/mcp` → 405), bu zamonaviy MCP klientlar uchun yetarli.
 # telegram-mcp12
+# telegram-mcp
